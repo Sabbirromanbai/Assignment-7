@@ -38,5 +38,5 @@ export async function getCategory(slug) {
         return null;
     }
 
-    return response.json()
+    return response.json();
 }
