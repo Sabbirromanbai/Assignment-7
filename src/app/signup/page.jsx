@@ -41,7 +41,9 @@ export default function SignupPage() {
             }
 
             if (data) {
-                toast.success("অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!");
+                toast.success(
+                    "অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে! এখন লগইন করুন।"
+                );
                 router.push("/signin");
             }
         } catch (err) {

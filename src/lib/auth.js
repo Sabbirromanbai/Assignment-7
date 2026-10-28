@@ -166,6 +166,9 @@ function createAuth() {
 
     emailAndPassword: {
       enabled: true,
+      // Sign-up must not create a session. The user is sent to /signin
+      // and logs in explicitly, so no session cookie is issued here.
+      autoSignIn: false,
     },
 
     socialProviders,
