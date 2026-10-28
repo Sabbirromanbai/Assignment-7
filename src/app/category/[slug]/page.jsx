@@ -20,7 +20,7 @@ const categoryInfo = {
 };
 
 function CategoryContent() {
-    const params = useParams()
+    const params = useParams();
     const slug = params?.slug;
     const category = categoryInfo[slug];
 
