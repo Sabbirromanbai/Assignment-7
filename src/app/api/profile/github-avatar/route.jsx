@@ -2,12 +2,15 @@
 import { NextResponse, connection } from "next/server";
 import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
-import { auth, database } from "@/lib/auth";
+import { getAuth, getDatabase } from "@/lib/auth";
 
 export async function GET() {
     await connection();
 
     try {
+        const auth = getAuth();
+        const database = getDatabase();
+
         const session = await auth.api.getSession({
             headers: await headers(),
         });

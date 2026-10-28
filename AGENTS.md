@@ -66,7 +66,7 @@ src/
 
 ## Auth
 
-- `src/lib/auth.js` throws at import time when neither `BETTER_AUTH_MONGODB_URI` nor `MONGODB_URI` is set. Database name is `bazardor`.
+- `src/lib/auth.js` initializes Better Auth lazily via `getAuth()` / `getDatabase()` so builds can collect route config without runtime env vars. Importing the module is safe; the missing-URI error is thrown on the first request if neither `BETTER_AUTH_MONGODB_URI` nor `MONGODB_URI` is set. Database name is `bazardor`.
 - Social providers are only registered when both client ID and secret exist, so Google/GitHub buttons fail if env vars are missing.
 - `baseURL` falls back through `BETTER_AUTH_URL` → `NEXT_PUBLIC_BETTER_AUTH_URL` → Vercel URLs → localhost; `trustedOrigins` includes localhost and the Vercel domains.
 - `auth-client.js` uses `window.location.origin` in the browser and env/Vercel fallbacks on the server.
