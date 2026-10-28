@@ -18,100 +18,45 @@ const categories = [
     { name: "মসলা", icon: "🌶️", slug: "mosla" },
 ];
 
-// Bengali month names
+const bengaliDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
 const banglaMonths = [
-    "বৈশাখ",
-    "জ্যৈষ্ঠ",
-    "আষাঢ়",
-    " শ্রাবণ",
-    "ভাদ্র",
-    "আশ্বিন",
-    "কার্তিক",
-    "অগ্রহায়ণ",
-    "পৌষ",
-    "মাঘ",
-    "ফাল্গুন",
-    "চৈত্র",
+    "জানুয়ারি",
+    "ফেব্রুয়ারি",
+    "মার্চ",
+    "এপ্রিল",
+    "মে",
+    "জুন",
+    "জুলাই",
+    "আগস্ট",
+    "সেপ্টেম্বর",
+    "অক্টোবর",
+    "নভেম্বর",
+    "ডিসেম্বর",
+];
+const banglaWeekdays = [
+    "রবিবার",
+    "সোমবার",
+    "মঙ্গলবার",
+    "বুধবার",
+    "বৃহস্পতিবার",
+    "শুক্রবার",
+    "শনিবার",
 ];
 
-// Convert number to Bengali digits
 function toBengaliNumber(num) {
-    const bengaliDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
     return num
         .toString()
         .split("")
-        .map((digit) => {
-            if (/\d/.test(digit)) {
-                return bengaliDigits[parseInt(digit)];
-            }
-            return digit;
-        })
+        .map((digit) => (/\d/.test(digit) ? bengaliDigits[parseInt(digit)] : digit))
         .join("");
 }
 
-// Calculate Bengali date (Bangla calendar)
-// Bangla calendar: starts around 14th April (Pohela Boishakh)
-function getBanglaDate(date = new Date()) {
-    // Bangla year is usually Gregorian year - 593 or so depending on month
-    // Pohela Boishakh is on 14 April in most years
-    const gregorianYear = date.getFullYear();
-    const gregorianMonth = date.getMonth(); // 0-11
-    const gregorianDay = date.getDate();
-    
-    let banglaYear = gregorianYear - 593;
-    
-    // If it's before 14th April, it's still previous Bangla year
-    if (gregorianMonth < 3 || (gregorianMonth === 3 && gregorianDay < 14)) {
-        banglaYear = gregorianYear - 594;
-    }
-    
-    // Calculate month (approximate calculation)
-    // Bangla months: Boishakh starts 14 April
-    let banglaMonthIndex;
-    let banglaDay;
-    
-    if ((gregorianMonth === 3 && gregorianDay >= 14) || gregorianMonth > 3) {
-        // After Pohela Boishakh
-        if (gregorianMonth === 3) {
-            banglaMonthIndex = 0; // Boishakh
-            banglaDay = gregorianDay - 13;
-        } else if (gregorianMonth === 4) {
-            banglaMonthIndex = 1; // Joishtho
-            banglaDay = gregorianDay + 17; // approx
-            if (banglaDay > 31) {
-                banglaMonthIndex = 2;
-                banglaDay = banglaDay - 31;
-            }
-        } else {
-            // Rough calculation for other months
-            banglaMonthIndex = (gregorianMonth - 3 + 12) % 12;
-            banglaDay = gregorianDay;
-            // Adjust day roughly
-            if (gregorianMonth === 5) banglaDay = gregorianDay + 15;
-            else if (gregorianMonth === 6) banglaDay = gregorianDay + 16;
-            else if (gregorianMonth === 7) banglaDay = gregorianDay + 15;
-            else if (gregorianMonth === 8) banglaDay = gregorianDay + 15;
-            else if (gregorianMonth === 9) banglaDay = gregorianDay + 16;
-            else if (gregorianMonth === 10) banglaDay = gregorianDay + 15;
-            else if (gregorianMonth === 11) banglaDay = gregorianDay + 14;
-            else if (gregorianMonth === 0) banglaDay = gregorianDay + 16;
-            else if (gregorianMonth === 1) banglaDay = gregorianDay + 15;
-            else if (gregorianMonth === 2) banglaDay = gregorianDay + 13;
-        }
-    } else {
-        // Before Pohela Boishakh - still in previous Bangla year
-        banglaMonthIndex = (gregorianMonth + 9) % 12; // Approximate
-        banglaDay = gregorianDay + 15;
-    }
-    
-    // Normalize month index
-    banglaMonthIndex = ((banglaMonthIndex % 12) + 12) % 12;
-    
-    // Ensure day is reasonable
-    if (banglaDay < 1) banglaDay = 1;
-    if (banglaDay > 31) banglaDay = ((banglaDay - 1) % 31) + 1;
-    
-    return `${toBengaliNumber(banglaDay)} ${banglaMonths[banglaMonthIndex]} ${toBengaliNumber(banglaYear)} বঙ্গাব্দ`;
+function formatBanglaDate(date) {
+    const weekday = banglaWeekdays[date.getDay()];
+    const day = toBengaliNumber(date.getDate());
+    const month = banglaMonths[date.getMonth()];
+    const year = toBengaliNumber(date.getFullYear());
+    return `${weekday}, ${day} ${month}, ${year}`;
 }
 
 export default function Navbar() {
@@ -122,17 +67,28 @@ export default function Navbar() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [githubImage, setGithubImage] = useState(null);
     const [githubLogin, setGithubLogin] = useState("");
-    const [banglaDate, setBanglaDate] = useState("");
+    const [displayDate, setDisplayDate] = useState("");
 
-    // Set Bengali date on client side to avoid hydration mismatch
     useEffect(() => {
-        setBanglaDate(getBanglaDate(new Date()));
-        // Update date at midnight
-        const now = new Date();
-        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const updateDate = () => {
+            const now = new Date(
+                new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
+            );
+            // Use actual current time in Dhaka
+            const dhakaTime = new Date(
+                new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
+            );
+            setDisplayDate(formatBanglaDate(dhakaTime));
+        };
+        updateDate();
+        const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" }));
+        const tomorrow = new Date(now);
+        tomorrow.setHours(24, 0, 0, 0);
         const timeUntilMidnight = tomorrow.getTime() - now.getTime();
         const timer = setTimeout(() => {
-            setBanglaDate(getBanglaDate(new Date()));
+            updateDate();
+            const interval = setInterval(updateDate, 24 * 60 * 60 * 1000);
+            return () => clearInterval(interval);
         }, timeUntilMidnight);
         return () => clearTimeout(timer);
     }, []);
@@ -149,10 +105,9 @@ export default function Navbar() {
 
         async function loadGitHubProfile() {
             try {
-                const response = await fetch(
-                    "/api/profile/github-avatar",
-                    { cache: "no-store" }
-                );
+                const response = await fetch("/api/profile/github-avatar", {
+                    cache: "no-store",
+                });
 
                 if (!response.ok) return;
 
@@ -163,10 +118,7 @@ export default function Navbar() {
                     setGithubLogin(data.login || "");
                 }
             } catch (error) {
-                console.error(
-                    "Navbar GitHub avatar error:",
-                    error
-                );
+                console.error("Navbar GitHub avatar error:", error);
             }
         }
 
@@ -177,7 +129,6 @@ export default function Navbar() {
         };
     }, [session?.user?.id]);
 
-    // Prefer GitHub avatar
     const profileImage = githubImage || session?.user?.image || null;
 
     async function handleSignOut() {
@@ -199,10 +150,7 @@ export default function Navbar() {
             <div className="border-b border-gray-200 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex min-h-[82px] items-center justify-between gap-3">
-                        <Link
-                            href="/"
-                            className="flex min-w-0 items-center gap-3"
-                        >
+                        <Link href="/" className="flex min-w-0 items-center gap-3">
                             <div className="relative h-11 w-11 shrink-0 sm:h-12 sm:w-12">
                                 <Image
                                     src="/logo-icon.png"
@@ -219,23 +167,19 @@ export default function Navbar() {
                                     বাজার দর
                                 </h1>
                                 <p className="text-[10px] text-gray-500 sm:text-xs">
-                                    {banglaDate || "নিত্যপ্রয়োজনীয় পণ্যের দৈনিক বাজার মূল্য"}
+                                    {displayDate || "বাজার মূল্য"}
                                 </p>
                             </div>
                         </Link>
 
                         {/* AUTH */}
                         {isPending ? (
-                            <div className="text-sm text-gray-500">
-                                লোড হচ্ছে...
-                            </div>
+                            <div className="text-sm text-gray-500">লোড হচ্ছে...</div>
                         ) : session?.user ? (
                             <div className="relative shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setIsDropdownOpen((prev) => !prev)
-                                    }
+                                    onClick={() => setIsDropdownOpen((prev) => !prev)}
                                     aria-expanded={isDropdownOpen}
                                     aria-label="User menu"
                                     className="flex items-center gap-2 rounded-xl px-2 py-2 transition hover:bg-green-50 sm:gap-3 sm:px-3"
@@ -267,8 +211,7 @@ export default function Navbar() {
                                     )}
 
                                     <span className="hidden max-w-32 truncate text-sm font-semibold text-gray-700 sm:block">
-                                        {session.user.name ||
-                                            session.user.email}
+                                        {session.user.name || session.user.email}
                                     </span>
 
                                     <svg
@@ -281,25 +224,21 @@ export default function Navbar() {
                                         strokeWidth="2"
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        className={`text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""
-                                            }`}
+                                        className={`text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
                                     >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </button>
 
-                                {/* DROPDOWN */}
                                 {isDropdownOpen && (
                                     <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
                                         <div className="border-b border-gray-100 px-4 py-3">
                                             <p className="truncate text-sm font-semibold text-gray-800">
                                                 {session.user.name || "User"}
                                             </p>
-
                                             <p className="truncate text-xs text-gray-500">
                                                 {session.user.email}
                                             </p>
-
                                             {githubLogin && (
                                                 <p className="mt-1 truncate text-xs text-gray-500">
                                                     GitHub: @{githubLogin}
@@ -309,9 +248,7 @@ export default function Navbar() {
 
                                         <Link
                                             href="/profile"
-                                            onClick={() =>
-                                                setIsDropdownOpen(false)
-                                            }
+                                            onClick={() => setIsDropdownOpen(false)}
                                             className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-700"
                                         >
                                             <svg
@@ -384,9 +321,7 @@ export default function Navbar() {
                         {categories.map((category) => {
                             const isActive =
                                 pathname === `/category/${category.slug}` ||
-                                pathname.startsWith(
-                                    `/category/${category.slug}/`
-                                );
+                                pathname.startsWith(`/category/${category.slug}/`);
 
                             return (
                                 <Link

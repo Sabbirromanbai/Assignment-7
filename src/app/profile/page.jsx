@@ -248,24 +248,14 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                        <button
-                            type="button"
-                            onClick={() => router.push("/profile/update")}
-                            className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-                        >
-                            <Pencil className="h-4 w-4" />
-                            প্রোফাইল আপডেট
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSignOut}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                        >
-                            <LogOut className="h-4 w-4" />
-                            সাইন আউট
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        সাইন আউট
+                    </button>
                 </section>
 
                 {/* Account information */}

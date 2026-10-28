@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="bn">
       <body>
-        <Toaster position="top-right" />
+        <Toaster position="top-right" reverseOrder={false} gutter={8} />
 
         <Suspense fallback={null}>
           <Navbar />
