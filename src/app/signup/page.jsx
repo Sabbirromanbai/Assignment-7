@@ -37,6 +37,7 @@ export default function SignupPage() {
 
             if (error) {
                 setError(error.message || "অ্যাকাউন্ট তৈরি করা যায়নি।");
+                toast.error(error.message || "সাইন আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
                 return;
             }
 
@@ -63,6 +64,11 @@ export default function SignupPage() {
             });
         } catch (err) {
             setError("সোশ্যাল লগইন ব্যর্থ হয়েছে।");
+            toast.error(
+                provider === "google"
+                    ? "Google লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+                    : "GitHub লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+            );
         }
     };
 

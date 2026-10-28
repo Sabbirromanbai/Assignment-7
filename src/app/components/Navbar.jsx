@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -6,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "@/lib/auth-client";
+import toast from "react-hot-toast";
 
 const categories = [
     { name: "চাল", icon: "🍚", slug: "chal" },
@@ -18,6 +18,102 @@ const categories = [
     { name: "মসলা", icon: "🌶️", slug: "mosla" },
 ];
 
+// Bengali month names
+const banglaMonths = [
+    "বৈশাখ",
+    "জ্যৈষ্ঠ",
+    "আষাঢ়",
+    " শ্রাবণ",
+    "ভাদ্র",
+    "আশ্বিন",
+    "কার্তিক",
+    "অগ্রহায়ণ",
+    "পৌষ",
+    "মাঘ",
+    "ফাল্গুন",
+    "চৈত্র",
+];
+
+// Convert number to Bengali digits
+function toBengaliNumber(num) {
+    const bengaliDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+    return num
+        .toString()
+        .split("")
+        .map((digit) => {
+            if (/\d/.test(digit)) {
+                return bengaliDigits[parseInt(digit)];
+            }
+            return digit;
+        })
+        .join("");
+}
+
+// Calculate Bengali date (Bangla calendar)
+// Bangla calendar: starts around 14th April (Pohela Boishakh)
+function getBanglaDate(date = new Date()) {
+    // Bangla year is usually Gregorian year - 593 or so depending on month
+    // Pohela Boishakh is on 14 April in most years
+    const gregorianYear = date.getFullYear();
+    const gregorianMonth = date.getMonth(); // 0-11
+    const gregorianDay = date.getDate();
+    
+    let banglaYear = gregorianYear - 593;
+    
+    // If it's before 14th April, it's still previous Bangla year
+    if (gregorianMonth < 3 || (gregorianMonth === 3 && gregorianDay < 14)) {
+        banglaYear = gregorianYear - 594;
+    }
+    
+    // Calculate month (approximate calculation)
+    // Bangla months: Boishakh starts 14 April
+    let banglaMonthIndex;
+    let banglaDay;
+    
+    if ((gregorianMonth === 3 && gregorianDay >= 14) || gregorianMonth > 3) {
+        // After Pohela Boishakh
+        if (gregorianMonth === 3) {
+            banglaMonthIndex = 0; // Boishakh
+            banglaDay = gregorianDay - 13;
+        } else if (gregorianMonth === 4) {
+            banglaMonthIndex = 1; // Joishtho
+            banglaDay = gregorianDay + 17; // approx
+            if (banglaDay > 31) {
+                banglaMonthIndex = 2;
+                banglaDay = banglaDay - 31;
+            }
+        } else {
+            // Rough calculation for other months
+            banglaMonthIndex = (gregorianMonth - 3 + 12) % 12;
+            banglaDay = gregorianDay;
+            // Adjust day roughly
+            if (gregorianMonth === 5) banglaDay = gregorianDay + 15;
+            else if (gregorianMonth === 6) banglaDay = gregorianDay + 16;
+            else if (gregorianMonth === 7) banglaDay = gregorianDay + 15;
+            else if (gregorianMonth === 8) banglaDay = gregorianDay + 15;
+            else if (gregorianMonth === 9) banglaDay = gregorianDay + 16;
+            else if (gregorianMonth === 10) banglaDay = gregorianDay + 15;
+            else if (gregorianMonth === 11) banglaDay = gregorianDay + 14;
+            else if (gregorianMonth === 0) banglaDay = gregorianDay + 16;
+            else if (gregorianMonth === 1) banglaDay = gregorianDay + 15;
+            else if (gregorianMonth === 2) banglaDay = gregorianDay + 13;
+        }
+    } else {
+        // Before Pohela Boishakh - still in previous Bangla year
+        banglaMonthIndex = (gregorianMonth + 9) % 12; // Approximate
+        banglaDay = gregorianDay + 15;
+    }
+    
+    // Normalize month index
+    banglaMonthIndex = ((banglaMonthIndex % 12) + 12) % 12;
+    
+    // Ensure day is reasonable
+    if (banglaDay < 1) banglaDay = 1;
+    if (banglaDay > 31) banglaDay = ((banglaDay - 1) % 31) + 1;
+    
+    return `${toBengaliNumber(banglaDay)} ${banglaMonths[banglaMonthIndex]} ${toBengaliNumber(banglaYear)} বঙ্গাব্দ`;
+}
+
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
@@ -26,6 +122,20 @@ export default function Navbar() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [githubImage, setGithubImage] = useState(null);
     const [githubLogin, setGithubLogin] = useState("");
+    const [banglaDate, setBanglaDate] = useState("");
+
+    // Set Bengali date on client side to avoid hydration mismatch
+    useEffect(() => {
+        setBanglaDate(getBanglaDate(new Date()));
+        // Update date at midnight
+        const now = new Date();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+        const timer = setTimeout(() => {
+            setBanglaDate(getBanglaDate(new Date()));
+        }, timeUntilMidnight);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Load linked GitHub profile
     useEffect(() => {
@@ -74,10 +184,12 @@ export default function Navbar() {
         try {
             await signOut();
             setIsDropdownOpen(false);
+            toast.success("সফলভাবে লগ আউট হয়েছে।");
             router.push("/");
             router.refresh();
         } catch (error) {
             console.error("Sign out failed:", error);
+            toast.error("লগ আউট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
         }
     }
 
@@ -107,7 +219,7 @@ export default function Navbar() {
                                     বাজার দর
                                 </h1>
                                 <p className="text-[10px] text-gray-500 sm:text-xs">
-                                    নিত্যপ্রয়োজনীয় পণ্যের দৈনিক বাজার মূল্য
+                                    {banglaDate || "নিত্যপ্রয়োজনীয় পণ্যের দৈনিক বাজার মূল্য"}
                                 </p>
                             </div>
                         </Link>

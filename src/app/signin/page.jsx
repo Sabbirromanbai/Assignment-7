@@ -37,6 +37,7 @@ export default function SignInPage() {
 
             if (error) {
                 setError(error.message || "Invalid email or password.");
+                toast.error(error.message || "লগইন ব্যর্থ হয়েছে। ইমেইল বা পাসওয়ার্ড যাচাই করুন।");
                 return;
             }
 
@@ -63,6 +64,11 @@ export default function SignInPage() {
             });
         } catch (err) {
             setError("Social login failed. Please try again.");
+            toast.error(
+                provider === "google"
+                    ? "Google লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+                    : "GitHub লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+            );
             setSocialLoading("");
         }
     };
