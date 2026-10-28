@@ -16,8 +16,113 @@ function getDatabaseUri() {
   return uri;
 }
 
+function isLoopbackHost(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
+}
+
+/**
+ * Reads an absolute URL from the environment and validates it.
+ * Vercel stores env values literally, so a copied `.env` line such as
+ * `http://localhost:3000 # comment` would otherwise crash Better Auth
+ * with "Invalid base URL" on the first request.
+ */
+function readBaseURL(name) {
+  const raw = process.env[name];
+
+  if (!raw) {
+    return undefined;
+  }
+
+  let url;
+
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    console.warn(
+      `[auth] Ignoring ${name}: expected an absolute http(s) URL. ` +
+        "Check for inline comments, quotes, or extra whitespace copied from .env."
+    );
+    return undefined;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    console.warn(
+      `[auth] Ignoring ${name}: URL must start with http:// or https://.`
+    );
+    return undefined;
+  }
+
+  if (process.env.VERCEL && isLoopbackHost(url.hostname)) {
+    console.warn(
+      `[auth] Ignoring ${name}: it points to localhost on Vercel. ` +
+        "Falling back to the Vercel deployment URL."
+    );
+    return undefined;
+  }
+
+  return url.origin;
+}
+
+function resolveBaseURL() {
+  const configured =
+    readBaseURL("BETTER_AUTH_URL") ||
+    readBaseURL("NEXT_PUBLIC_BETTER_AUTH_URL");
+
+  if (configured) {
+    return configured;
+  }
+
+  // Vercel provides these automatically. The production host keeps OAuth
+  // callbacks and cookies stable across preview deployments.
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL;
+
+  if (vercelHost) {
+    return `https://${vercelHost}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+function resolveTrustedOrigins(baseURL) {
+  const origins = new Set([
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://*.vercel.app",
+  ]);
+
+  try {
+    origins.add(new URL(baseURL).origin);
+  } catch {
+    // baseURL is always validated above, so this is unreachable in practice.
+  }
+
+  for (const host of [
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+  ]) {
+    if (host) {
+      origins.add(`https://${host}`);
+    }
+  }
+
+  return [...origins];
+}
+
 function createAuth() {
-  const client = new MongoClient(getDatabaseUri());
+  const client = new MongoClient(getDatabaseUri(), {
+    // Fail fast with an actionable error instead of hanging when Atlas
+    // network access (IP allowlist) is not configured for the deployment.
+    serverSelectionTimeoutMS: 10000,
+  });
+
   const database = client.db("bazardor");
 
   const socialProviders = {};
@@ -42,16 +147,13 @@ function createAuth() {
     };
   }
 
-  const baseURL =
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : undefined) ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    (process.env.NODE_ENV === "production"
-      ? "https://bazardor-project-assijment-7-2rwk.vercel.app"
-      : "http://localhost:3000");
+  if (!process.env.BETTER_AUTH_SECRET) {
+    console.warn(
+      "[auth] BETTER_AUTH_SECRET is not set. Better Auth rejects requests in production without it."
+    );
+  }
+
+  const baseURL = resolveBaseURL();
 
   const auth = betterAuth({
     database: mongodbAdapter(database, {
@@ -60,12 +162,7 @@ function createAuth() {
 
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL,
-    trustedOrigins: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://bazardor-project-assijment-7-2rwk.vercel.app",
-      "https://*.vercel.app",
-    ],
+    trustedOrigins: resolveTrustedOrigins(baseURL),
 
     emailAndPassword: {
       enabled: true,
