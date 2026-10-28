@@ -7,7 +7,7 @@ import { toBanglaNumber, getProductSlug } from "./priceUtils";
 
 const API_URL = "/api/products";
 
-// Category অনুযায়ী Emoji
+// Category অনুযায়ী 
 const CATEGORY_ICONS = {
     chal: "🍚",
     dal: "🥜",
