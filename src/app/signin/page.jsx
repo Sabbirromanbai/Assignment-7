@@ -36,7 +36,7 @@ export default function SignInPage() {
             });
 
             if (error) {
-                setError(error.message || "Invalid email  password.");
+                setError(error.message || "Invalid email or password.");
                 return;
             }
 
